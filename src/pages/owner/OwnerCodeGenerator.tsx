@@ -10,7 +10,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Copy, RefreshCw, CheckCircle } from 'lucide-react';
+// Add this above the component definition
+import { supabase } from '../lib/supabaseClient';
 
+export const getServerSideProps = async (context) => {
+  const { user } = await supabase.auth.api.getUserByCookie(context.req);
+
+  if (!user) {
+    return { redirect: { destination: '/login', permanent: false } };
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || profile.role !== 'owner') {
+    return { redirect: { destination: '/login', permanent: false } };
+  }
+
+  return { props: {} };
+};
 const OwnerCodeGenerator = () => {
   const { user } = useAuth();
   const { toast } = useToast();
