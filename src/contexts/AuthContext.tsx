@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '../integrations/supabase/client';
@@ -41,7 +42,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Convert SupabaseUser to ExtendedUser
         if (newSession?.user) {
           const extendedUser: ExtendedUser = {
-            ...newSession.user
+            ...newSession.user as Omit<SupabaseUser, 'role'>
           };
           setUser(extendedUser);
 
@@ -62,7 +63,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Convert SupabaseUser to ExtendedUser
       if (currentSession?.user) {
         const extendedUser: ExtendedUser = {
-          ...currentSession.user
+          ...currentSession.user as Omit<SupabaseUser, 'role'>
         };
         setUser(extendedUser);
         
