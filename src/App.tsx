@@ -23,6 +23,7 @@ import StoreCreation from "./pages/vendor/StoreCreation";
 import ProductCreate from "./pages/vendor/ProductCreate";
 import ProductEdit from "./pages/vendor/ProductEdit";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
+import OwnerCodeGenerator from "./pages/owner/OwnerCodeGenerator";
 import VendorApprovals from "./pages/owner/VendorApprovals";
 import CommissionReports from "./pages/owner/CommissionReports";
 import UserProfile from "./pages/user/UserProfile";
@@ -66,6 +67,7 @@ const App = () => (
               
               {/* Owner routes */}
               <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+              <Route path="/owner/code-generator" element={<OwnerCodeGenerator />} />
               <Route path="/owner/approvals" element={<VendorApprovals />} />
               <Route path="/owner/commissions" element={<CommissionReports />} />
               

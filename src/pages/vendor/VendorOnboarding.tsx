@@ -69,7 +69,7 @@ const VendorOnboarding = () => {
       businessEmail: user.email || "",
       businessPhone: "",
       businessDescription: "",
-      agreeTerms: false,
+      agreeTerms: false as unknown as true,
     },
   });
 
