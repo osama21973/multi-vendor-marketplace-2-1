@@ -261,9 +261,9 @@ const ProductEdit = () => {
                         <FormLabel className="text-base">
                           Published
                         </FormLabel>
-                        <FormDescription>
+                        <CardDescription>
                           Make this product visible in your store
-                        </FormDescription>
+                        </CardDescription>
                       </div>
                       <FormControl>
                         <Switch

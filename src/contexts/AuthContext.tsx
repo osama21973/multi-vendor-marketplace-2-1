@@ -1,13 +1,21 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 
 export type UserRole = 'owner' | 'vendor' | 'customer' | null;
 
+// Extended User type that includes our custom properties
+export interface ExtendedUser extends SupabaseUser {
+  role?: UserRole;
+  approved?: boolean;
+  name?: string;
+  avatar?: string;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: ExtendedUser | null;
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -20,7 +28,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -30,7 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         setSession(newSession);
-        setUser(newSession?.user ?? null);
+        setUser(newSession?.user ? {...newSession.user} : null);
 
         // If we have a session, fetch additional user data
         if (newSession?.user) {
@@ -44,7 +52,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      setUser(currentSession?.user ? {...currentSession.user} : null);
       
       if (currentSession?.user) {
         fetchUserProfile(currentSession.user.id);
@@ -63,7 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('role, approved')
+        .select('role, approved, name, avatar')
         .eq('id', userId)
         .single();
       
@@ -72,14 +80,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
       
-      // Enhance user object with role information
+      // Enhance user object with additional information
       if (data) {
         setUser(prevUser => {
           if (!prevUser) return prevUser;
           return { 
             ...prevUser, 
             role: data.role,
-            approved: data.approved
+            approved: data.approved,
+            name: data.name || prevUser.email?.split('@')[0], // Use email as fallback for name
+            avatar: data.avatar
           };
         });
       }
