@@ -155,5 +155,12 @@ const OwnerCodeGenerator = () => {
     </PageLayout>
   );
 };
+// Change this line (line 8):
+//export default withAuth(OwnerCodeGenerator);
 
-export default OwnerCodeGenerator;
+// To:
+export default withAuth({
+  redirectTo: '/login',
+  allowedRoles: ['owner'], // Add this
+  loadWhileRedirecting: true // Optional loading state
+})(OwnerCodeGenerator);
