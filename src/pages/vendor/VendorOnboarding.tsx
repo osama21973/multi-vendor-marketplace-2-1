@@ -195,7 +195,7 @@ const VendorOnboarding = () => {
                       <FormControl>
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={field.onChange}
+                          onCheckedChange={(checked) => field.onChange(checked === true)}
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
