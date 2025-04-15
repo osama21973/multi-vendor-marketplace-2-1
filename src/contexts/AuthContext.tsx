@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (!prevUser) return prevUser;
           return { 
             ...prevUser, 
-            role: data.role,
+            role: data.role as UserRole, // Cast to UserRole type
             approved: data.approved,
             name: data.name || prevUser.email?.split('@')[0], // Use email as fallback for name
             avatar: data.avatar
