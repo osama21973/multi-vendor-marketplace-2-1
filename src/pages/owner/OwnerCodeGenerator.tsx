@@ -101,6 +101,12 @@ const OwnerCodeGenerator = () => {
   };
   
   return (
+     // Inside your component, update the useEffect to:
+useEffect(() => {
+  if (!loading && user?.role !== 'owner') {
+    router.push('/login');
+  }
+}, [user, loading, router]);
     <PageLayout>
       <div className="container mx-auto py-12 max-w-3xl">
         <Card>
