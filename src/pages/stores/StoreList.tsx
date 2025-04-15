@@ -14,7 +14,7 @@ import { Search } from 'lucide-react';
 const StoreList = () => {
   const { language } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   
   // Fetch store categories
   const { data: categories } = useQuery({
@@ -56,7 +56,7 @@ const StoreList = () => {
       }
       
       // Apply category filter if selected
-      if (selectedCategory) {
+      if (selectedCategory && selectedCategory !== 'all') {
         query = query.eq('category_id', selectedCategory);
       }
       
@@ -104,7 +104,7 @@ const StoreList = () => {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories?.map((category) => (
                   <SelectItem key={category.id} value={String(category.id)}>
                     {language === 'ar' ? category.name_ar : category.name_en}
