@@ -1,87 +1,173 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '../integrations/supabase/client';
+import { useToast } from "@/components/ui/use-toast";
 
 export type UserRole = 'owner' | 'vendor' | 'customer' | null;
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  avatar?: string;
-}
-
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   signup: (email: string, password: string, role: UserRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// This is a placeholder until we connect with Supabase
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
   
   useEffect(() => {
-    // Check if user exists in localStorage (temporary solution until Supabase)
-    const storedUser = localStorage.getItem('marketplace_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // First set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        // If we have a session, fetch additional user data
+        if (newSession?.user) {
+          setTimeout(() => {
+            fetchUserProfile(newSession.user.id);
+          }, 0);
+        }
+      }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        fetchUserProfile(currentSession.user.id);
+      }
+      
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
+  // Fetch user profile data including role
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role, approved')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+      
+      // Enhance user object with role information
+      if (data) {
+        setUser(prevUser => {
+          if (!prevUser) return prevUser;
+          return { 
+            ...prevUser, 
+            role: data.role,
+            approved: data.approved
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
   const login = async (email: string, password: string) => {
-    // Placeholder for Supabase authentication
     setIsLoading(true);
     
     try {
-      // Simulate login delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user for demo purposes
-      const mockUser: User = {
-        id: 'user123',
-        name: email.split('@')[0],
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        role: 'customer',
-      };
+        password,
+      });
       
-      setUser(mockUser);
-      localStorage.setItem('marketplace_user', JSON.stringify(mockUser));
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+      
+      // User data is handled by onAuthStateChange
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('marketplace_user');
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      await supabase.auth.signOut();
+      // Session and user state handled by onAuthStateChange
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const signup = async (email: string, password: string, role: UserRole) => {
-    // Placeholder for Supabase signup
     setIsLoading(true);
     
     try {
-      // Simulate signup delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user for demo purposes
-      const mockUser: User = {
-        id: `user_${Date.now()}`,
-        name: email.split('@')[0],
+      // First create the auth user
+      const { data, error } = await supabase.auth.signUp({
         email,
-        role: role || 'customer',
-      };
+        password,
+      });
       
-      setUser(mockUser);
-      localStorage.setItem('marketplace_user', JSON.stringify(mockUser));
+      if (error) {
+        toast({
+          title: "Signup failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        throw error;
+      }
+
+      // Then create the user record with role
+      if (data.user) {
+        const { error: profileError } = await supabase.from('users').insert({
+          id: data.user.id,
+          email: email,
+          role: role,
+          // Default values handled by database
+        });
+
+        if (profileError) {
+          console.error("Error creating user profile:", profileError);
+          toast({
+            title: "Profile creation failed",
+            description: "Your account was created, but we couldn't set up your profile.",
+            variant: "destructive"
+          });
+        }
+      }
+      
+      // User data is handled by onAuthStateChange
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -90,6 +176,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <AuthContext.Provider value={{ 
       user, 
+      session,
       isAuthenticated: !!user, 
       isLoading,
       login,
