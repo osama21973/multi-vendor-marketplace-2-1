@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { supabase } from '../../integrations/supabase/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,18 +13,12 @@ import { Loader2, Copy, RefreshCw, CheckCircle } from 'lucide-react';
 import withAuth from '../../components/auth/withAuth';
 
 const OwnerCodeGenerator = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  
-  useEffect(() => {
-    if (!loading && user?.role !== 'owner') {
-      navigate('/login');
-    }
-  }, [user, loading, navigate]);
   
   if (user?.role !== 'owner') {
     navigate('/login');
