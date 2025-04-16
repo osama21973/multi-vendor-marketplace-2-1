@@ -1,5 +1,4 @@
-// src/pages/owner/OwnerCodeGenerator.tsx
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../integrations/supabase/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -10,37 +9,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Copy, RefreshCw, CheckCircle } from 'lucide-react';
-// Add this above the component definition
-import { supabase } from '../lib/supabaseClient';
+import withAuth from '../../components/auth/withAuth';
 
-export const getServerSideProps = async (context) => {
-  const { user } = await supabase.auth.api.getUserByCookie(context.req);
-
-  if (!user) {
-    return { redirect: { destination: '/login', permanent: false } };
-  }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || profile.role !== 'owner') {
-    return { redirect: { destination: '/login', permanent: false } };
-  }
-
-  return { props: {} };
-};
 const OwnerCodeGenerator = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [generatedCode, setGeneratedCode] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   
-  // Check if current user is an owner
+  useEffect(() => {
+    if (!loading && user?.role !== 'owner') {
+      navigate('/login');
+    }
+  }, [user, loading, navigate]);
+  
   if (user?.role !== 'owner') {
     navigate('/login');
     return null;
@@ -49,7 +33,6 @@ const OwnerCodeGenerator = () => {
   const generateOwnerCode = async () => {
     setIsGenerating(true);
     try {
-      // Create a formatted code that's easy to read and type
       const prefix = 'OWNER';
       const segment1 = Math.random().toString(36).substring(2, 6).toUpperCase();
       const segment2 = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -57,7 +40,6 @@ const OwnerCodeGenerator = () => {
       
       const code = `${prefix}-${segment1}-${segment2}-${segment3}`;
       
-      // Store in database
       const { error } = await supabase
         .from('owner_codes')
         .insert({
@@ -94,19 +76,12 @@ const OwnerCodeGenerator = () => {
       description: "Owner code has been copied to clipboard."
     });
     
-    // Reset copy state after 2 seconds
     setTimeout(() => {
       setIsCopied(false);
     }, 2000);
   };
   
   return (
-     // Inside your component, update the useEffect to:
-useEffect(() => {
-  if (!loading && user?.role !== 'owner') {
-    router.push('/login');
-  }
-}, [user, loading, router]);
     <PageLayout>
       <div className="container mx-auto py-12 max-w-3xl">
         <Card>
@@ -182,12 +157,9 @@ useEffect(() => {
     </PageLayout>
   );
 };
-// Change this line (line 8):
-//export default withAuth(OwnerCodeGenerator);
 
-// To:
 export default withAuth({
   redirectTo: '/login',
-  allowedRoles: ['owner'], // Add this
-  loadWhileRedirecting: true // Optional loading state
+  allowedRoles: ['owner'],
+  loadWhileRedirecting: true
 })(OwnerCodeGenerator);
