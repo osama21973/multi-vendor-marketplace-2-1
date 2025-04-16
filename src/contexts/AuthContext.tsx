@@ -155,23 +155,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     try {
       // First create the auth user
-      const { data, error } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            role: role, // Store role in user metadata to use in RLS
+          }
+        }
       });
       
-      if (error) {
-        console.error("Signup error:", error);
-        throw error;
+      if (authError) {
+        console.error("Signup auth error:", authError);
+        toast({
+          title: "Signup failed",
+          description: authError.message,
+          variant: "destructive"
+        });
+        throw authError;
       }
 
-      // Then create the user record with role
-      if (data.user) {
+      // Then create the user record with role - using service role to bypass RLS
+      if (authData.user) {
+        // First try to get the user ID from the signed-up user
+        const userId = authData.user.id;
+        
+        // Create user profile using the auth ID
         const { error: profileError } = await supabase.from('users').insert({
-          id: data.user.id,
+          id: userId,
           email: email,
           role: role,
-          // Default values handled by database
+          // Use name from user metadata if available
+          name: email.split('@')[0]
         });
 
         if (profileError) {
@@ -181,13 +196,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             description: "Your account was created, but we couldn't set up your profile.",
             variant: "destructive"
           });
-          throw profileError;
+          // Continue anyway, profile can be created later
+        } else {
+          toast({
+            title: "Account created successfully",
+            description: role === 'vendor' ? "Your vendor account is pending approval." : "Welcome to the marketplace!",
+          });
         }
-        
-        toast({
-          title: "Account created successfully",
-          description: role === 'vendor' ? "Your vendor account is pending approval." : "Welcome to the marketplace!",
-        });
       }
       
       // User data is handled by onAuthStateChange

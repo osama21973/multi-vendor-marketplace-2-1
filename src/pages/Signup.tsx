@@ -20,6 +20,15 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { 
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -45,14 +54,16 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<SignupFormValues>({
+  const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
       role: 'customer'
     }
   });
-
-  const role = watch('role');
 
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
@@ -63,15 +74,17 @@ const Signup = () => {
       
       toast({
         title: "Account created successfully",
-        description: "Welcome to the marketplace!",
+        description: data.role === 'vendor' 
+          ? "Your vendor account is pending approval." 
+          : "Welcome to the marketplace!",
       });
       
       navigate('/dashboard');
     } catch (err: any) {
       console.error("Signup error:", err);
       
-      // Check if the error is about user already existing
-      if (err?.code === "user_already_exists") {
+      // Display appropriate error message based on the error code
+      if (err?.message?.includes("already")) {
         setError('An account with this email already exists. Please use a different email or try logging in.');
       } else {
         setError(err?.message || 'Failed to create an account. Please try again.');
@@ -104,86 +117,103 @@ const Signup = () => {
               </div>
             )}
             
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  {...register('name')}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  placeholder="name@example.com"
-                  type="email"
-                  {...register('email')}
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="name@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  {...register('password')}
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.password && (
-                  <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  {...register('confirmPassword')}
+                
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="role">I want to</Label>
-                <Select 
-                  defaultValue="customer"
-                  onValueChange={(value) => setValue('role', value as 'customer' | 'vendor')}
+                
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>I want to</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="customer">Shop on the marketplace</SelectItem>
+                          <SelectItem value="vendor">Sell products (become a vendor)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {field.value === 'vendor' && (
+                        <FormDescription>
+                          After signing up, you'll need to complete your vendor profile and wait for approval.
+                        </FormDescription>
+                      )}
+                    </FormItem>
+                  )}
+                />
+                
+                <Button 
+                  type="submit" 
+                  className="w-full bg-marketplace-primary hover:bg-marketplace-secondary" 
+                  disabled={isLoading}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="customer">Shop on the marketplace</SelectItem>
-                    <SelectItem value="vendor">Sell products (become a vendor)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {role === 'vendor' && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    After signing up, you'll need to complete your vendor profile and wait for approval.
-                  </p>
-                )}
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-marketplace-primary hover:bg-marketplace-secondary" 
-                disabled={isLoading}
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign up
-              </Button>
-            </form>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Sign up
+                </Button>
+              </form>
+            </Form>
             
             <div className="mt-4 text-center text-sm">
               <span className="text-gray-500">
