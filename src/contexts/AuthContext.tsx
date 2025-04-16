@@ -22,7 +22,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   signup: (email: string, password: string, role: UserRole) => Promise<void>;
-  verifyOwnerCode: (code: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -109,54 +108,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
-    }
-  };
-
-  // Verify owner code against the database
-  const verifyOwnerCode = async (code: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .from('owner_codes')
-        .select('*')
-        .eq('code', code)
-        .eq('used', false)
-        .single();
-      
-      if (error || !data) {
-        console.error('Invalid owner code:', error);
-        return false;
-      }
-      
-      // Mark the code as used
-      const { error: updateError } = await supabase
-        .from('owner_codes')
-        .update({ used: true })
-        .eq('code', code);
-      
-      if (updateError) {
-        console.error('Error updating owner code status:', updateError);
-      }
-      
-      // Update the user's role to owner in the users table
-      if (user) {
-        const { error: roleUpdateError } = await supabase
-          .from('users')
-          .update({ 
-            role: 'owner',
-            approved: true,
-            owner_code: code
-          })
-          .eq('id', user.id);
-        
-        if (roleUpdateError) {
-          console.error('Error updating user role:', roleUpdateError);
-        }
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error verifying owner code:', error);
-      return false;
     }
   };
 
@@ -254,8 +205,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isLoading,
       login,
       logout,
-      signup,
-      verifyOwnerCode
+      signup
     }}>
       {children}
     </AuthContext.Provider>
