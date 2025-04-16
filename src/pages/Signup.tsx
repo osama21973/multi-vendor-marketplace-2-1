@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -40,6 +41,7 @@ const Signup = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,9 +60,28 @@ const Signup = () => {
     
     try {
       await signup(data.email, data.password, data.role as UserRole);
+      
+      toast({
+        title: "Account created successfully",
+        description: "Welcome to the marketplace!",
+      });
+      
       navigate('/dashboard');
-    } catch (err) {
-      setError('Failed to create an account. Please try again.');
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      
+      // Check if the error is about user already existing
+      if (err?.code === "user_already_exists") {
+        setError('An account with this email already exists. Please use a different email or try logging in.');
+      } else {
+        setError(err?.message || 'Failed to create an account. Please try again.');
+      }
+      
+      toast({
+        title: "Signup failed",
+        description: err?.message || "Failed to create your account. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }

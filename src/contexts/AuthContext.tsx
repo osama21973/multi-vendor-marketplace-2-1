@@ -161,11 +161,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       
       if (error) {
-        toast({
-          title: "Signup failed",
-          description: error.message,
-          variant: "destructive"
-        });
+        console.error("Signup error:", error);
         throw error;
       }
 
@@ -185,7 +181,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             description: "Your account was created, but we couldn't set up your profile.",
             variant: "destructive"
           });
+          throw profileError;
         }
+        
+        toast({
+          title: "Account created successfully",
+          description: role === 'vendor' ? "Your vendor account is pending approval." : "Welcome to the marketplace!",
+        });
       }
       
       // User data is handled by onAuthStateChange
